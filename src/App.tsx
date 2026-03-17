@@ -82,8 +82,26 @@ function App() {
     weeklySlots.map((slot) => ({ ...slot, dish: null })),
   );
   const [isDietMode, setIsDietMode] = useState(false);
+  const [toasts, setToasts] = useState<{ id: string; text: string; x: number; y: number }[]>([]);
 
   const formRef = useRef<HTMLElement>(null);
+
+  // Funcion para disparar el texto flotante
+  const triggerToast = (text: string, e: React.MouseEvent) => {
+    // Solo si el texto del boton esta oculto (movil)
+    if (window.innerWidth > 600) return;
+
+    const id = nanoid();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    setToasts(prev => [...prev, { id, text, x, y }]);
+    
+    // Limpiar el toast despues de la animacion
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 1000);
+  };
 
   useEffect(() => {
     try {
@@ -377,17 +395,33 @@ function App() {
             <div className="panel__actions">
               <button 
                 className={`button ${isDietMode ? 'button--success' : 'button--ghost'}`} 
-                onClick={() => { playFeedback(); setIsDietMode(!isDietMode); }}
+                onClick={(e) => { 
+                  playFeedback(); 
+                  setIsDietMode(!isDietMode); 
+                  triggerToast(`Diet ${!isDietMode ? 'ON' : 'OFF'}`, e);
+                }}
                 title="Solo una carne/pollo/cerdo por dia"
               >
                 <Icons.Apple size={18} />
                 <span className="button__text">Diet {isDietMode ? 'ON' : 'OFF'}</span>
               </button>
-              <button className="button button--primary" onClick={handleGeneratePlan} title="Generar semana aleatoria">
+              <button 
+                className="button button--primary" 
+                onClick={(e) => { handleGeneratePlan(); triggerToast('Random!', e); }} 
+                title="Generar semana aleatoria"
+              >
                 <Icons.Dices size={18} /> 
                 <span className="button__text">Random</span>
               </button>
-              <button className="button button--ghost" onClick={() => { playFeedback(); setWeeklyPlan(weeklySlots.map(s => ({...s, dish: null}))); }} title="Limpiar semana">
+              <button 
+                className="button button--ghost" 
+                onClick={(e) => { 
+                  playFeedback(); 
+                  setWeeklyPlan(weeklySlots.map(s => ({...s, dish: null}))); 
+                  triggerToast('Limpiado', e);
+                }} 
+                title="Limpiar semana"
+              >
                 <Icons.Trash2 size={18} />
                 <span className="button__text">Limpiar</span>
               </button>
@@ -508,6 +542,12 @@ function App() {
           </div>
         </section>
       </main>
+
+      {toasts.map(toast => (
+        <div key={toast.id} className="toast-float" style={{ left: toast.x, top: toast.y }}>
+          {toast.text}
+        </div>
+      ))}
     </div>
   );
 }
