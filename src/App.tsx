@@ -42,6 +42,37 @@ function shuffle<T>(items: T[]) {
   return copy;
 }
 
+// Sonido y vibracion sutil
+const playFeedback = () => {
+  // Vibracion (solo funciona en Android/Chrome con interaccion del usuario)
+  if (typeof window !== 'undefined' && window.navigator.vibrate) {
+    window.navigator.vibrate(10);
+  }
+  
+  // Sonido (Web Audio API para no depender de archivos externos)
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime); // Tono agudo y corto
+    
+    gain.gain.setValueAtTime(0.05, ctx.currentTime); // Volumen bajito
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {
+    // Silencio si el navegador bloquea el audio
+  }
+};
+
 function App() {
   const [isReady, setIsReady] = useState(false);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
@@ -99,6 +130,7 @@ function App() {
   if (!isReady) return null;
 
   function handleSaveDish(event: React.FormEvent) {
+    playFeedback();
     event.preventDefault();
     if (!form.name.trim() || !form.protein.trim()) return;
 
@@ -149,6 +181,7 @@ function App() {
   }
 
   function handleEditClick(dish: Dish) {
+    playFeedback();
     setEditingDishId(dish.id);
     setForm({
       name: dish.name,
@@ -160,11 +193,13 @@ function App() {
   }
 
   function handleCancelEdit() {
+    playFeedback();
     setEditingDishId(null);
     setForm(emptyForm);
   }
 
   function handleDeleteDish(dishId: string) {
+    playFeedback();
     setDishes((current) => current.filter((dish) => dish.id !== dishId));
     setWeeklyPlan((current) =>
       current.map((meal) =>
@@ -174,6 +209,7 @@ function App() {
   }
 
   function handleGeneratePlan() {
+    playFeedback();
     const generate = (): PlannedMeal[] => {
       const plan: PlannedMeal[] = [];
       const usedInDay: Record<string, string[]> = {};
@@ -241,6 +277,7 @@ function App() {
   }
 
   function handleRerollSlot(day: string, mealType: MealType) {
+    playFeedback();
     const heavyProteins = ['carne', 'cerdo', 'pollo'];
     const days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
     const currentDayIdx = days.indexOf(day);
@@ -330,14 +367,14 @@ function App() {
             <div className="panel__actions">
               <button 
                 className={`button ${isDietMode ? 'button--success' : 'button--ghost'}`} 
-                onClick={() => setIsDietMode(!isDietMode)}
+                onClick={() => { playFeedback(); setIsDietMode(!isDietMode); }}
                 title="Solo una carne/pollo/cerdo por dia"
               >
                 <Icons.Apple size={18} />
                 Diet {isDietMode ? 'ON' : 'OFF'}
               </button>
               <button className="button button--primary" onClick={handleGeneratePlan}><Icons.Dices size={18} /> Random</button>
-              <button className="button button--ghost" onClick={() => setWeeklyPlan(weeklySlots.map(s => ({...s, dish: null})))}>Limpiar</button>
+              <button className="button button--ghost" onClick={() => { playFeedback(); setWeeklyPlan(weeklySlots.map(s => ({...s, dish: null}))); }}>Limpiar</button>
             </div>
           </div>
 

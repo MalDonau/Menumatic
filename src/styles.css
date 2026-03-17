@@ -120,7 +120,40 @@ button { cursor: pointer; border: 0; border-radius: 16px; }
 .panel__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 10px; }
 .panel__actions { display: flex; gap: 8px; }
 
-.button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; font-weight: 600; }
+.button { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 12px 16px; 
+  font-weight: 600; 
+  transition: all 0.1s ease; /* Transicion rapida */
+}
+
+/* EFECTO NEGATIVO AL PRESIONAR */
+.button:active {
+  transform: scale(0.96); /* Se achica un poquito */
+}
+
+.button--primary:active {
+  background: white !important;
+  color: var(--primary) !important;
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.button--success:active {
+  background: #064e3b !important;
+  color: #4ade80 !important;
+}
+
+.button--ghost:active {
+  background: var(--primary-dark) !important;
+  color: white !important;
+}
+
+.button--danger:active {
+  background: #8b3f12 !important;
+  color: white !important;
+}
 .button--primary { background: var(--primary); color: white; }
 .button--success { background: #4ade80; color: #064e3b; border: 2px solid #22c55e; }
 .button--ghost { background: rgba(47, 125, 89, 0.08); color: var(--primary-dark); }
