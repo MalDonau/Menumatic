@@ -240,6 +240,59 @@ function App() {
     setWeeklyPlan(bestPlan);
   }
 
+  function handleRerollSlot(day: string, mealType: MealType) {
+    const heavyProteins = ['carne', 'cerdo', 'pollo'];
+    const days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
+    const currentDayIdx = days.indexOf(day);
+    
+    // Identificar platos y proteinas usados en otros slots
+    const otherMeals = weeklyPlan.filter(m => !(m.day === day && m.mealType === mealType));
+    const usedDishIds = new Set(otherMeals.map(m => m.dish?.id).filter(Boolean));
+    
+    // Proteinas en el mismo dia (el otro turno)
+    const sameDayProteins = otherMeals.filter(m => m.day === day).map(m => normalizeProtein(m.dish?.protein || ''));
+    
+    // Proteinas dia anterior
+    const prevDay = currentDayIdx > 0 ? days[currentDayIdx - 1] : null;
+    const prevDayProteins = otherMeals.filter(m => m.day === prevDay).map(m => normalizeProtein(m.dish?.protein || ''));
+    
+    // Proteinas dia siguiente (importante para no romper la cadena)
+    const nextDay = currentDayIdx < days.length - 1 ? days[currentDayIdx + 1] : null;
+    const nextDayProteins = otherMeals.filter(m => m.day === nextDay).map(m => normalizeProtein(m.dish?.protein || ''));
+
+    const candidates = shuffle(dishes).filter(dish => {
+      if (!dish.mealTypes.includes(mealType)) return false;
+      if (usedDishIds.has(dish.id)) return false;
+
+      const p = normalizeProtein(dish.protein);
+      const isException = p === 'huevo' || p === 'otro';
+
+      // No repetir en el mismo dia
+      if (sameDayProteins.includes(p)) return false;
+
+      // Regla modo DIET: si el otro turno tiene carne, este no puede
+      if (isDietMode && heavyProteins.includes(p)) {
+        const hasHeavyInDay = sameDayProteins.some(usedP => heavyProteins.includes(usedP));
+        if (hasHeavyInDay) return false;
+      }
+
+      // No repetir con dia anterior ni siguiente (excepto huevo/otro)
+      if (!isException) {
+        if (prevDayProteins.includes(p)) return false;
+        if (nextDayProteins.includes(p)) return false;
+      }
+
+      return true;
+    });
+
+    const choice = candidates[0];
+    if (choice) {
+      setWeeklyPlan(current => current.map(m => 
+        (m.day === day && m.mealType === mealType) ? { ...m, dish: choice } : m
+      ));
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="hero">
@@ -314,7 +367,17 @@ function App() {
 
                     {meal.dish ? (
                       <>
-                        <h3 style={{ fontSize: '1rem', lineHeight: '1.2' }}>{meal.dish.name}</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                          <h3 style={{ fontSize: '1rem', lineHeight: '1.2', margin: 0 }}>{meal.dish.name}</h3>
+                          <button 
+                            className="button button--ghost icon-button" 
+                            style={{ padding: '4px', borderRadius: '8px', minHeight: 'auto', width: '28px', height: '28px' }}
+                            onClick={() => handleRerollSlot(meal.day, meal.mealType)}
+                            title="Cambiar este plato"
+                          >
+                            <Icons.RotateCw size={14} />
+                          </button>
+                        </div>
                         <p className="meal-card__protein" style={{ transform: 'scale(0.8)', transformOrigin: 'left', marginTop: '4px' }}>
                           {meal.dish.protein}
                         </p>
